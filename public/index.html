@@ -1,0 +1,82 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="MCP 配置生成器，支持 stdio / Streamable HTTP / SSE 三种连接方式，并可切换 Claude Code、Codex、OpenClaw 输出格式。"
+    />
+    <title>MCP Config Studio</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb bg-orb-a"></div>
+    <div class="bg-orb bg-orb-b"></div>
+
+    <main class="app-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <div class="hero-title">MCP 配置填充器</div>
+        </div>
+      </header>
+
+      <section class="toolbar panel">
+        <span class="toolbar-label">平台</span>
+        <div class="segmented" id="platformSwitcher" role="tablist" aria-label="平台切换"></div>
+        <div class="platform-card-top toolbar-top">
+          <div class="platform-current">
+            <span>当前平台：</span>
+            <strong id="platformLabel">Claude Code</strong>
+          </div>
+          <div class="toolbar-actions">
+            <button class="ghost-button" id="copyConfigBtn" type="button">复制当前配置</button>
+            <button class="primary-button" id="copyManifestBtn" type="button">复制完整清单</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <section class="panel form-panel">
+          <div class="section-head">
+            <span class="section-kicker connection-heading">连接编辑器</span>
+            <button class="ghost-button" id="addConnectionBtn" type="button">新增项</button>
+          </div>
+
+          <section class="preset-section">
+            <div class="preset-head">
+              <div>
+                <span class="section-kicker">常用 MCP</span>
+              </div>
+            </div>
+            <div class="preset-grid" id="presetGrid"></div>
+          </section>
+
+          <div class="connections" id="connections"></div>
+        </section>
+
+        <aside class="panel output-panel">
+          <div class="section-head compact">
+            <span class="section-kicker">配置信息</span>
+          </div>
+
+          <div class="output-tabs" id="outputTabs"></div>
+
+          <div class="summary-grid" id="summaryGrid"></div>
+
+          <div class="code-wrapper">
+            <button class="code-copy-btn" id="copySnippetBtn" type="button" title="复制">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+            <pre class="code-block"><code id="snippet"></code></pre>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
+
+
+

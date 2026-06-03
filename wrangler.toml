@@ -1,0 +1,7 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "mcp-config-studio"             # Cloudflare Pages 项目名
+compatibility_date = "2026-06-02"      # Workers 运行时兼容日期
+
+[assets]
+directory = "./public"                 # 静态资源目录
+not_found_handling = "single-page-application"  # SPA 回退，未匹配路径返回 index.html
