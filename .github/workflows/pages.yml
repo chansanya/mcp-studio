@@ -1,3 +1,5 @@
+# 将 public/ 目录部署到 GitHub Pages
+# 触发条件：push 到 master 或手动触发
 name: GitHub Pages
 
 on:
@@ -6,10 +8,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: read       # 拉取代码
+  pages: write         # 写入 Pages 产物
+  id-token: write      # OIDC 鉴权，deploy-pages 需要
 
+# 同一时间只保留一个部署任务，新请求自动取消旧的
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -21,10 +24,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # 拉取仓库代码
       - uses: actions/checkout@v4
+
+      # 初始化 Pages 运行环境
       - uses: actions/configure-pages@v5
+
+      # 将 public/ 目录打包为部署产物
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
+
+      # 部署到 GitHub Pages，输出访问 URL
       - id: deployment
         uses: actions/deploy-pages@v4
