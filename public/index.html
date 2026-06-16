@@ -22,25 +22,18 @@
       </header>
 
       <section class="toolbar panel">
-        <span class="toolbar-label">平台</span>
+        <span class="toolbar-label">CLI</span>
         <div class="segmented" id="platformSwitcher" role="tablist" aria-label="平台切换"></div>
-        <div class="platform-card-top toolbar-top">
-          <div class="platform-current">
-            <span>当前平台：</span>
-            <strong id="platformLabel">Claude Code</strong>
-          </div>
-          <div class="toolbar-actions">
-            <button class="ghost-button" id="copyConfigBtn" type="button">复制当前配置</button>
-            <button class="primary-button" id="copyManifestBtn" type="button">复制完整清单</button>
-          </div>
-        </div>
       </section>
 
       <section class="workspace">
         <section class="panel form-panel">
           <div class="section-head">
             <span class="section-kicker connection-heading">连接编辑器</span>
-            <button class="ghost-button" id="addConnectionBtn" type="button">新增项</button>
+            <div class="head-actions">
+              <button class="ghost-button" id="addConnectionBtn" type="button">新增项</button>
+              <button class="ghost-button" id="clearAllBtn" type="button">清空</button>
+            </div>
           </div>
 
           <section class="preset-section">
@@ -62,8 +55,12 @@
 
           <div class="controls-row">
             <div class="segmented" id="osSwitcher" role="tablist" aria-label="系统切换"></div>
-            <div class="segmented" id="scopeSwitcher" role="tablist" aria-label="作用域"></div>
+          </div>
+          <div class="controls-row">
             <div class="segmented" id="modeSwitcher" role="tablist" aria-label="输出模式"></div>
+          </div>
+          <div class="controls-row">
+            <div class="segmented" id="scopeSwitcher" role="tablist" aria-label="作用域"></div>
           </div>
 
           <div class="code-wrapper">

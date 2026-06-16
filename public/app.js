@@ -7,6 +7,9 @@
   },
   openclaw: {
     label: "OpenClaw"
+  },
+  ccswitch: {
+    label: "cc-switch"
   }
 };
 
@@ -142,11 +145,9 @@ const el = {
   connections: document.getElementById("connections"),
   presetGrid: document.getElementById("presetGrid"),
   snippet: document.getElementById("snippet"),
-  platformLabel: document.getElementById("platformLabel"),
   copySnippetBtn: document.getElementById("copySnippetBtn"),
-  copyConfigBtn: document.getElementById("copyConfigBtn"),
-  copyManifestBtn: document.getElementById("copyManifestBtn"),
-  addConnectionBtn: document.getElementById("addConnectionBtn")
+  addConnectionBtn: document.getElementById("addConnectionBtn"),
+  clearAllBtn: document.getElementById("clearAllBtn")
 };
 
 function parseKeyValueLines(input) {
@@ -340,13 +341,6 @@ function buildCodexToml(manifest) {
       }
     }
 
-    if (server.timeout !== null) {
-      lines.push(`# timeout_ms = ${server.timeout}`);
-    }
-    if (server.notes) {
-      lines.push(`# notes = ${server.notes}`);
-    }
-
     blocks.push(lines.join("\n"));
   }
 
@@ -383,10 +377,40 @@ function buildOpenClawConfig(manifest) {
   return JSON.stringify(servers, null, 2);
 }
 
+function buildCcSwitchConfig(manifest) {
+  const configs = [];
+
+  for (const server of manifest.servers) {
+    const env = serverEnv(server);
+    const headers = serverHeaders(server);
+    const entry = { type: server.transport };
+
+    if (server.transport === "stdio") {
+      const { command, args } = stdioCommand(server);
+      entry.command = command;
+      if (args.length > 0) {
+        entry.args = args;
+      }
+      if (Object.keys(env).length > 0) {
+        entry.env = env;
+      }
+    } else {
+      entry.url = server.endpoint;
+      if (Object.keys(headers).length > 0) {
+        entry.headers = headers;
+      }
+    }
+
+    configs.push(entry);
+  }
+
+  return configs.map(c => JSON.stringify(c, null, 2)).join("\n\n");
+}
+
 function renderSnippet() {
   const manifest = buildPortableManifest();
 
-  // Codex / OpenClaw 只能输出配置文件
+  // Codex / OpenClaw / cc-switch 只能输出配置文件
   if (state.platform !== "claude" || state.outputMode === "config") {
     if (state.platform === "claude") {
       el.snippet.textContent = buildClaudeConfig(manifest);
@@ -394,6 +418,10 @@ function renderSnippet() {
     }
     if (state.platform === "codex") {
       el.snippet.textContent = buildCodexToml(manifest);
+      return;
+    }
+    if (state.platform === "ccswitch") {
+      el.snippet.textContent = buildCcSwitchConfig(manifest);
       return;
     }
     el.snippet.textContent = buildOpenClawConfig(manifest);
@@ -437,6 +465,10 @@ function buildCliCommands(manifest) {
 }
 
 function renderScopeSwitch() {
+  const visible = state.platform === "claude" && state.outputMode === "cli";
+  el.scopeSwitcher.style.display = visible ? "" : "none";
+  if (!visible) return;
+
   const items = [
     { key: "project", label: "📁 项目" },
     { key: "user", label: "🌐 全局" },
@@ -471,26 +503,13 @@ function renderModeSwitch() {
 
 function renderOsSwitch() {
   const items = [
-    { key: "linux", label: "🐧 Linux" },
-    { key: "windows", label: "🪟 Windows" },
+    { key: "linux", label: "Linux" },
+    { key: "windows", label: "Windows" },
   ];
   el.osSwitcher.innerHTML = items
     .map(
       ({ key, label }) =>
         `<button class="segment ${state.os === key ? "active" : ""}" data-os="${key}" type="button">${label}</button>`
-    )
-    .join("");
-}
-
-function renderModeSwitch() {
-  const items = [
-    { key: "config", label: "📄 配置文件" },
-    { key: "cli", label: "📋 CLI 命令" },
-  ];
-  el.modeSwitcher.innerHTML = items
-    .map(
-      ({ key, label }) =>
-        `<button class="segment ${state.outputMode === key ? "active" : ""}" data-mode="${key}" type="button">${label}</button>`
     )
     .join("");
 }
@@ -502,7 +521,6 @@ function renderSwitcher() {
         `<button class="segment ${state.platform === key ? "active" : ""}" data-platform="${key}" type="button">${value.label}</button>`
     )
     .join("");
-  el.platformLabel.textContent = platformPresets[state.platform].label;
 }
 
 function endpointLabel(transport) {
@@ -590,15 +608,6 @@ function renderConnections() {
               <textarea rows="4" data-field="headers" placeholder="Authorization=Bearer xxx&#10;x-trace-id=demo-001">${escapeHtml(server.headers)}</textarea>
             </label>
 
-            <label class="field">
-              <span>请求备注</span>
-              <input type="text" data-field="notes" value="${escapeAttr(server.notes)}" placeholder="可选：连接说明、平台限制、额外提示" />
-            </label>
-
-            <label class="field">
-              <span>超时(ms)</span>
-              <input type="number" min="0" step="100" data-field="timeout" value="${escapeAttr(server.timeout)}" placeholder="0" />
-            </label>
           </div>
         </article>`;
     })
@@ -708,6 +717,7 @@ function wireEvents() {
     if (button.classList.contains("disabled")) return;
     state.outputMode = button.dataset.mode;
     renderModeSwitch();
+    renderScopeSwitch();
     renderSnippet();
   });
 
@@ -722,6 +732,11 @@ function wireEvents() {
 
   el.addConnectionBtn.addEventListener("click", () => {
     addBlankServer();
+  });
+
+  el.clearAllBtn.addEventListener("click", () => {
+    state.servers = [];
+    renderAll();
   });
 
   el.connections.addEventListener("input", (event) => {
@@ -783,18 +798,6 @@ function wireEvents() {
     }, 1200);
   });
 
-  el.copyConfigBtn.addEventListener("click", async () => {
-    await copyText(el.snippet.textContent || "");
-    el.copyConfigBtn.textContent = "已复制";
-    setTimeout(() => (el.copyConfigBtn.textContent = "复制当前配置"), 1200);
-  });
-
-  el.copyManifestBtn.addEventListener("click", async () => {
-    const manifest = JSON.stringify(buildPortableManifest(), null, 2);
-    await copyText(manifest);
-    el.copyManifestBtn.textContent = "已复制";
-    setTimeout(() => (el.copyManifestBtn.textContent = "复制完整清单"), 1200);
-  });
 }
 
 wireEvents();

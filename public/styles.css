@@ -153,57 +153,6 @@ h3 {
   font-size: 0.86rem;
 }
 
-.platform-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.platform-current {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  min-width: 0;
-  font-size: 0.88rem;
-  line-height: 1;
-}
-
-.platform-current span,
-.platform-current strong {
-  font-size: 0.88rem;
-}
-
-.platform-current strong {
-  font-family: var(--sans);
-  font-weight: 700;
-}
-
-.toolbar-top {
-  margin-bottom: 4px;
-}
-
-.toolbar-stats {
-  width: 100%;
-}
-
-.platform-card-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.mini-stat {
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  background: rgba(148, 163, 184, 0.06);
-  padding: 14px;
-  display: grid;
-  gap: 6px;
-}
-
 .panel {
   border-radius: var(--radius);
 }
@@ -256,20 +205,6 @@ h3 {
 .segment.disabled {
   opacity: 0.35;
   pointer-events: none;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.toolbar-actions .primary-button,
-.toolbar-actions .ghost-button {
-  min-height: 38px;
-  padding: 0 12px;
-  font-size: 0.9rem;
 }
 
 .preset-section {
@@ -433,8 +368,9 @@ h3 {
   white-space: nowrap;
 }
 
-.section-head .ghost-button {
-  white-space: nowrap;
+.head-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .section-note {
@@ -661,9 +597,8 @@ h3 {
 .controls-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .code-wrapper {
