@@ -73,6 +73,54 @@ const builtInMcpPresets = [
     headers: {},
     notes: "SSH MCP 示例",
     timeout: "0"
+  },
+  {
+    name: "fetch",
+    displayName: "fetch",
+    summary: "HTTP 请求工具，适合调用外部 API。",
+    transport: "stdio",
+    endpoint: "npx",
+    args: ["-y", "@modelcontextprotocol/server-fetch"],
+    env: {},
+    headers: {},
+    notes: "Fetch MCP",
+    timeout: "0"
+  },
+  {
+    name: "context7",
+    displayName: "context7",
+    summary: "文档检索与上下文增强，适合技术文档查询。",
+    transport: "stdio",
+    endpoint: "npx",
+    args: ["-y", "@upstash/context7-mcp"],
+    env: {},
+    headers: {},
+    notes: "Context7 MCP",
+    timeout: "0"
+  },
+  {
+    name: "sequential-thinking",
+    displayName: "sequential-thinking",
+    summary: "分步推理与思维链工具。",
+    transport: "stdio",
+    endpoint: "npx",
+    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+    env: {},
+    headers: {},
+    notes: "Sequential Thinking MCP",
+    timeout: "0"
+  },
+  {
+    name: "memory",
+    displayName: "memory",
+    summary: "持久化记忆存储，适合会话上下文保留。",
+    transport: "stdio",
+    endpoint: "npx",
+    args: ["-y", "@modelcontextprotocol/server-memory"],
+    env: {},
+    headers: {},
+    notes: "Memory MCP",
+    timeout: "0"
   }
 ];
 
