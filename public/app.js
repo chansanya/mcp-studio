@@ -23,9 +23,7 @@ const builtInMcpPresets = [
     endpoint: "npx",
     args: ["-y", "@modelcontextprotocol/server-filesystem", "D:/tools/file"],
     env: { NODE_ENV: "production", MCP_LOG_LEVEL: "info" },
-    headers: {},
-    notes: "本地文件系统示例",
-    timeout: "0"
+    headers: {}
   },
   {
     name: "github",
@@ -35,9 +33,7 @@ const builtInMcpPresets = [
     endpoint: "npx",
     args: ["-y", "@modelcontextprotocol/server-github"],
     env: { GITHUB_PERSONAL_ACCESS_TOKEN: "ghp_xxx" },
-    headers: {},
-    notes: "GitHub MCP",
-    timeout: "0"
+    headers: {}
   },
   {
     name: "mysql",
@@ -53,9 +49,7 @@ const builtInMcpPresets = [
       MYSQL_PASS: "password",
       MYSQL_DB: "app"
     },
-    headers: {},
-    notes: "MySQL MCP",
-    timeout: "0"
+    headers: {}
   },
   {
     name: "ssh",
@@ -70,9 +64,7 @@ const builtInMcpPresets = [
       '{"name":"prod","host":"127.0.0.1","port":22,"username":"root","password":"password"}'
     ],
     env: {},
-    headers: {},
-    notes: "SSH MCP 示例",
-    timeout: "0"
+    headers: {}
   },
   {
     name: "fetch",
@@ -82,9 +74,7 @@ const builtInMcpPresets = [
     endpoint: "uvx",
     args: ["mcp-server-fetch"],
     env: {},
-    headers: {},
-    notes: "Fetch MCP",
-    timeout: "0"
+    headers: {}
   },
   {
     name: "context7",
@@ -94,9 +84,7 @@ const builtInMcpPresets = [
     endpoint: "npx",
     args: ["-y", "@upstash/context7-mcp"],
     env: {},
-    headers: {},
-    notes: "Context7 MCP",
-    timeout: "0"
+    headers: {}
   },
   {
     name: "sequential-thinking",
@@ -106,9 +94,7 @@ const builtInMcpPresets = [
     endpoint: "npx",
     args: ["-y", "@modelcontextprotocol/server-sequential-thinking"],
     env: {},
-    headers: {},
-    notes: "Sequential Thinking MCP",
-    timeout: "0"
+    headers: {}
   },
   {
     name: "memory",
@@ -118,9 +104,7 @@ const builtInMcpPresets = [
     endpoint: "npx",
     args: ["-y", "@modelcontextprotocol/server-memory"],
     env: {},
-    headers: {},
-    notes: "Memory MCP",
-    timeout: "0"
+    headers: {}
   }
 ];
 
@@ -156,8 +140,6 @@ function makeServer(overrides = {}) {
     args: "",
     env: "",
     headers: "",
-    notes: "",
-    timeout: "0",
     collapsed: false
   };
 
@@ -171,9 +153,7 @@ function serverFromPreset(preset) {
     endpoint: preset.endpoint,
     args: preset.args.join("\n"),
     env: formatMultilineObject(preset.env),
-    headers: formatMultilineObject(preset.headers),
-    notes: preset.notes,
-    timeout: preset.timeout
+    headers: formatMultilineObject(preset.headers)
   });
 }
 
@@ -283,8 +263,6 @@ function toManifestServers() {
       name: server.name || "unnamed",
       transport: server.transport,
       endpoint: server.endpoint,
-      notes: server.notes,
-      timeout: server.timeout === "" ? null : Number(server.timeout),
       collapsed: server.collapsed
     };
 
