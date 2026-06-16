@@ -253,6 +253,11 @@ h3 {
   border-color: rgba(125, 211, 252, 0.35);
 }
 
+.segment.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 .toolbar-actions {
   display: flex;
   gap: 10px;
@@ -653,6 +658,14 @@ h3 {
   display: none;
 }
 
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
 .code-wrapper {
   position: relative;
 }
@@ -715,42 +728,6 @@ h3 {
   display: none;
 }
 
-.output-tabs {
-  margin-bottom: 16px;
-}
-
-.summary-grid {
-  margin-bottom: 16px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.summary-grid::-webkit-scrollbar {
-  display: none;
-}
-
-.summary-item {
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  background: rgba(148, 163, 184, 0.06);
-  padding: 14px;
-  display: grid;
-  gap: 6px;
-}
-
-.summary-item span {
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-.summary-item strong {
-  font-size: 1.02rem;
-  font-family: var(--display);
-}
-
 .notice {
   margin-top: 16px;
   border-radius: 18px;
@@ -781,8 +758,7 @@ h3 {
     padding: 18px;
   }
 
-  .field-grid,
-  .summary-grid {
+  .field-grid {
     grid-template-columns: 1fr;
   }
 

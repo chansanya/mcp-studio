@@ -128,18 +128,21 @@ function serverFromPreset(preset) {
 
 const state = {
   platform: "claude",
-  selectedTab: "config",
+  os: "linux",
+  scope: "project",
+  outputMode: "config",
   servers: []
 };
 
 const el = {
   platformSwitcher: document.getElementById("platformSwitcher"),
+  osSwitcher: document.getElementById("osSwitcher"),
+  scopeSwitcher: document.getElementById("scopeSwitcher"),
+  modeSwitcher: document.getElementById("modeSwitcher"),
   connections: document.getElementById("connections"),
   presetGrid: document.getElementById("presetGrid"),
-  outputTabs: document.getElementById("outputTabs"),
   snippet: document.getElementById("snippet"),
   platformLabel: document.getElementById("platformLabel"),
-  summaryGrid: document.getElementById("summaryGrid"),
   copySnippetBtn: document.getElementById("copySnippetBtn"),
   copyConfigBtn: document.getElementById("copyConfigBtn"),
   copyManifestBtn: document.getElementById("copyManifestBtn"),
@@ -261,18 +264,25 @@ function buildPortableManifest() {
   };
 }
 
+function stdioCommand(server) {
+  if (state.os === "windows") {
+    return { command: "cmd", args: ["/c", server.endpoint, ...serverArgs(server)] };
+  }
+  return { command: server.endpoint, args: serverArgs(server) };
+}
+
 function buildClaudeConfig(manifest) {
   const servers = {};
 
   for (const server of manifest.servers) {
-    const args = serverArgs(server);
     const env = serverEnv(server);
     const headers = serverHeaders(server);
 
     if (server.transport === "stdio") {
+      const { command, args } = stdioCommand(server);
       const entry = {
         type: "stdio",
-        command: server.endpoint,
+        command,
       };
 
       if (args.length > 0) {
@@ -300,7 +310,6 @@ function buildCodexToml(manifest) {
   const blocks = [];
 
   for (const server of manifest.servers) {
-    const args = serverArgs(server);
     const env = serverEnv(server);
     const headers = serverHeaders(server);
     const key = sanitizeTomlKey(server.name);
@@ -308,7 +317,8 @@ function buildCodexToml(manifest) {
     lines.push(`type = ${escapeTomlString(server.transport)}`);
 
     if (server.transport === "stdio") {
-      lines.push(`command = ${escapeTomlString(server.endpoint)}`);
+      const { command, args } = stdioCommand(server);
+      lines.push(`command = ${escapeTomlString(command)}`);
       if (args.length > 0) {
         lines.push(`args = ${tomlArray(args)}`);
       }
@@ -347,13 +357,13 @@ function buildOpenClawConfig(manifest) {
   const servers = {};
 
   for (const server of manifest.servers) {
-    const args = serverArgs(server);
     const env = serverEnv(server);
     const headers = serverHeaders(server);
     const entry = {};
 
     if (server.transport === "stdio") {
-      entry.command = server.endpoint;
+      const { command, args } = stdioCommand(server);
+      entry.command = command;
       if (args.length > 0) {
         entry.args = args;
       }
@@ -376,31 +386,120 @@ function buildOpenClawConfig(manifest) {
 function renderSnippet() {
   const manifest = buildPortableManifest();
 
-  if (state.selectedTab === "manifest") {
-    el.snippet.textContent = JSON.stringify(manifest, null, 2);
+  // Codex / OpenClaw 只能输出配置文件
+  if (state.platform !== "claude" || state.outputMode === "config") {
+    if (state.platform === "claude") {
+      el.snippet.textContent = buildClaudeConfig(manifest);
+      return;
+    }
+    if (state.platform === "codex") {
+      el.snippet.textContent = buildCodexToml(manifest);
+      return;
+    }
+    el.snippet.textContent = buildOpenClawConfig(manifest);
     return;
   }
 
-  if (state.platform === "claude") {
-    el.snippet.textContent = buildClaudeConfig(manifest);
-    return;
+  el.snippet.textContent = buildCliCommands(manifest);
+}
+
+function buildCliCommands(manifest) {
+  const blocks = [];
+
+  for (const server of manifest.servers) {
+    const env = serverEnv(server);
+    const lines = [`# ${server.name} (${server.transport})`];
+
+    if (server.transport === "stdio") {
+      const { command, args } = stdioCommand(server);
+      lines.push(`claude mcp add ${server.name} \\`);
+      lines.push(`  --scope ${state.scope} \\`);
+      for (const [k, v] of Object.entries(env)) {
+        lines.push(`  --env ${k}=${v} \\`);
+      }
+      const allArgs = [command, ...args].join(" ");
+      lines.push(`  -- ${allArgs}`);
+    } else {
+      const headers = serverHeaders(server);
+      lines.push(`claude mcp add ${server.name} \\`);
+      lines.push(`  --scope ${state.scope} \\`);
+      lines.push(`  --transport ${server.transport} \\`);
+      lines.push(`  ${server.endpoint}`);
+      for (const [k, v] of Object.entries(headers)) {
+        lines.push(`#   header: ${k}=${v}`);
+      }
+    }
+
+    blocks.push(lines.join("\n"));
   }
 
-  if (state.platform === "codex") {
-    el.snippet.textContent = buildCodexToml(manifest);
-    return;
+  return blocks.join("\n\n");
+}
+
+function renderScopeSwitch() {
+  const items = [
+    { key: "project", label: "📁 项目" },
+    { key: "user", label: "🌐 全局" },
+  ];
+  el.scopeSwitcher.innerHTML = items
+    .map(
+      ({ key, label }) =>
+        `<button class="segment ${state.scope === key ? "active" : ""}" data-scope="${key}" type="button">${label}</button>`
+    )
+    .join("");
+}
+
+function renderModeSwitch() {
+  const allowCli = state.platform === "claude";
+  if (!allowCli && state.outputMode === "cli") {
+    state.outputMode = "config";
   }
-  el.snippet.textContent = buildOpenClawConfig(manifest);
+
+  const items = [
+    { key: "config", label: "📄 配置文件" },
+    { key: "cli", label: "📋 CLI 命令", claudeOnly: true },
+  ];
+  el.modeSwitcher.innerHTML = items
+    .map(
+      ({ key, label, claudeOnly }) => {
+        const dis = claudeOnly && !allowCli ? "disabled" : "";
+        return `<button class="segment ${state.outputMode === key ? "active" : ""} ${dis}" data-mode="${key}" type="button">${label}</button>`;
+      }
+    )
+    .join("");
+}
+
+function renderOsSwitch() {
+  const items = [
+    { key: "linux", label: "🐧 Linux" },
+    { key: "windows", label: "🪟 Windows" },
+  ];
+  el.osSwitcher.innerHTML = items
+    .map(
+      ({ key, label }) =>
+        `<button class="segment ${state.os === key ? "active" : ""}" data-os="${key}" type="button">${label}</button>`
+    )
+    .join("");
+}
+
+function renderModeSwitch() {
+  const items = [
+    { key: "config", label: "📄 配置文件" },
+    { key: "cli", label: "📋 CLI 命令" },
+  ];
+  el.modeSwitcher.innerHTML = items
+    .map(
+      ({ key, label }) =>
+        `<button class="segment ${state.outputMode === key ? "active" : ""}" data-mode="${key}" type="button">${label}</button>`
+    )
+    .join("");
 }
 
 function renderSwitcher() {
   el.platformSwitcher.innerHTML = Object.entries(platformPresets)
     .map(
-      ([key, value]) => `
-        <button class="segment ${state.platform === key ? "active" : ""}" data-platform="${key}" type="button">
-          ${value.label}
-        </button>
-      `
+      ([key, value]) =>
+        `<button class="segment ${state.platform === key ? "active" : ""}" data-platform="${key}" type="button">${value.label}</button>`
     )
     .join("");
   el.platformLabel.textContent = platformPresets[state.platform].label;
@@ -422,8 +521,7 @@ function renderPresetGrid() {
             <span class="preset-meta">${transportLabels[preset.transport]}</span>
           </div>
           <small class="preset-summary">${preset.summary}</small>
-        </button>
-      `
+        </button>`
     )
     .join("");
 }
@@ -433,10 +531,9 @@ function renderConnections() {
     el.connections.innerHTML = `
       <div class="empty-state">
         <h3>当前没有连接卡片</h3>
-        <p>你可以点击“新增”或点选下方内置 MCP，重新开始配置。</p>
+        <p>你可以点击"新增"或点选下方内置 MCP，重新开始配置。</p>
         <button class="primary-button" type="button" data-empty-add>新增项</button>
-      </div>
-    `;
+      </div>`;
     return;
   }
 
@@ -503,54 +600,8 @@ function renderConnections() {
               <input type="number" min="0" step="100" data-field="timeout" value="${escapeAttr(server.timeout)}" placeholder="0" />
             </label>
           </div>
-        </article>
-      `;
+        </article>`;
     })
-    .join("");
-}
-
-function renderTabs() {
-  const tabs = [
-    { key: "config", label: "当前平台" },
-    { key: "manifest", label: "清单 JSON" }
-  ];
-
-  el.outputTabs.innerHTML = tabs
-    .map(
-      (tab) => `
-        <button class="segment ${state.selectedTab === tab.key ? "active" : ""}" data-tab="${tab.key}" type="button">
-          ${tab.label}
-        </button>
-      `
-    )
-    .join("");
-}
-
-function renderSummary() {
-  const manifest = buildPortableManifest();
-  const totalEnv = manifest.servers.reduce((sum, server) => sum + Object.keys(serverEnv(server)).length, 0);
-  const transportCounts = manifest.servers.reduce(
-    (acc, server) => {
-      acc[server.transport] += 1;
-      return acc;
-    },
-    { stdio: 0, http: 0, sse: 0 }
-  );
-
-  el.summaryGrid.innerHTML = [
-    { label: "连接数", value: `${manifest.servers.length} slots` },
-    { label: "环境变量", value: `${totalEnv} 条` },
-    { label: "stdio", value: `${transportCounts.stdio}` },
-    { label: "HTTP / SSE", value: `${transportCounts.http} / ${transportCounts.sse}` }
-  ]
-    .map(
-      (item) => `
-        <div class="summary-item">
-          <span>${item.label}</span>
-          <strong>${item.value}</strong>
-        </div>
-      `
-    )
     .join("");
 }
 
@@ -572,14 +623,15 @@ function escapeHtml(value) {
 function renderAll() {
   renderSwitcher();
   renderPresetGrid();
-  renderTabs();
   renderConnections();
+  renderOsSwitch();
+  renderScopeSwitch();
+  renderModeSwitch();
   renderSnippet();
-  renderSummary();
 }
 
 function resetWorkspaceForPlatformSwitch() {
-  state.selectedTab = "config";
+  // 只保留切换逻辑，不清空 server
 }
 
 function updateServer(index, field, value) {
@@ -594,7 +646,6 @@ function addServerFromPreset(preset) {
   const nextServer = serverFromPreset(cloneObject(preset));
   nextServer.name = makeUniqueServerName(nextServer.name);
   state.servers.push(nextServer);
-  state.selectedTab = "config";
   renderAll();
 }
 
@@ -606,7 +657,6 @@ function addBlankServer() {
       transport: "stdio"
     })
   );
-  state.selectedTab = "config";
   renderAll();
 }
 
@@ -629,15 +679,35 @@ function wireEvents() {
     const button = event.target.closest("[data-platform]");
     if (!button) return;
     state.platform = button.dataset.platform;
+    if (state.platform !== "claude") {
+      state.outputMode = "config";
+    }
     resetWorkspaceForPlatformSwitch();
     renderAll();
   });
 
-  el.outputTabs.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-tab]");
+  el.osSwitcher.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-os]");
     if (!button) return;
-    state.selectedTab = button.dataset.tab;
-    renderTabs();
+    state.os = button.dataset.os;
+    renderOsSwitch();
+    renderSnippet();
+  });
+
+  el.scopeSwitcher.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-scope]");
+    if (!button) return;
+    state.scope = button.dataset.scope;
+    renderScopeSwitch();
+    renderSnippet();
+  });
+
+  el.modeSwitcher.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-mode]");
+    if (!button) return;
+    if (button.classList.contains("disabled")) return;
+    state.outputMode = button.dataset.mode;
+    renderModeSwitch();
     renderSnippet();
   });
 
@@ -663,11 +733,7 @@ function wireEvents() {
     if (target.dataset.field === "name" || target.dataset.field === "transport") {
       renderConnections();
     }
-    if (target.dataset.field === "transport") {
-      // transport change also affects which fields are visible
-    }
     renderSnippet();
-    renderSummary();
   });
 
   el.connections.addEventListener("change", (event) => {
@@ -679,11 +745,7 @@ function wireEvents() {
     if (target.dataset.field === "name" || target.dataset.field === "transport") {
       renderConnections();
     }
-    if (target.dataset.field === "transport") {
-      // transport change also affects which fields are visible
-    }
     renderSnippet();
-    renderSummary();
   });
 
   el.connections.addEventListener("click", (event) => {
@@ -722,9 +784,6 @@ function wireEvents() {
   });
 
   el.copyConfigBtn.addEventListener("click", async () => {
-    state.selectedTab = "config";
-    renderTabs();
-    renderSnippet();
     await copyText(el.snippet.textContent || "");
     el.copyConfigBtn.textContent = "已复制";
     setTimeout(() => (el.copyConfigBtn.textContent = "复制当前配置"), 1200);
@@ -740,4 +799,3 @@ function wireEvents() {
 
 wireEvents();
 renderAll();
-
